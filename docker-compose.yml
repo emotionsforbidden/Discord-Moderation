@@ -1,0 +1,23 @@
+services:
+    bot:
+        container_name: prod-bot
+        build:
+            dockerfile: Dockerfile
+            context: .
+        restart: unless-stopped
+        env_file:
+            - .env
+        command: bun tsx src/app
+
+    postgres:
+        container_name: prod-postgres
+        image: postgres:14-alpine
+        ports:
+            - '127.0.0.1:5433:5432'
+        volumes:
+            - postgres:/var/lib/postgresql/data
+        env_file:
+            - .env
+
+volumes:
+    postgres:
