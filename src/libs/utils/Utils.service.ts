@@ -34,6 +34,8 @@ export class UtilsService {
     }
 
     public async getRole(guild: Guild, roleId: string) {
+        if (!roleId) return null;
+
         try {
             return await guild.roles.fetch(roleId);
         } catch (error) {
@@ -46,6 +48,8 @@ export class UtilsService {
         guild: Guild,
         channelId: string
     ) {
+        if (!channelId) return null;
+
         try {
             return (await guild.channels.fetch(channelId)) as T;
         } catch (error) {
