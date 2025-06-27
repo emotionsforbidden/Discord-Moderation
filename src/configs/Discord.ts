@@ -1,5 +1,5 @@
 export const DiscordConfig = {
-    guildId: '1364534486838280283',
+    guildId: '',
     roles: {
         mute: '',
         ban: '',
