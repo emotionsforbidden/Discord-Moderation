@@ -18,12 +18,13 @@ export class CustomClient extends Client {
 
     public async init() {
         this.customLogger.listen();
-        await importx(`${process.cwd()}/src/app/{events,interactions}/**/*.ts`);
 
         if (!process.env.BOT_TOKEN) {
             this.customLogger.log(LogLevel.ERROR, `Bot token is not provided`);
             process.exit(1);
         }
+
+        await importx(`${process.cwd()}/src/app/{events,interactions}/**/*.ts`);
 
         try {
             await this.login(process.env.BOT_TOKEN);
