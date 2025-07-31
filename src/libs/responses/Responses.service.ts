@@ -157,7 +157,7 @@ export class ResponsesService {
                         )
                         .setOptions(
                             dto.page.sliced.length
-                                ? dto.page.sliced.map((punishment, index) => {
+                                ? dto.page.sliced.map((_, index) => {
                                       return new StringSelectMenuOptionBuilder()
                                           .setLabel(
                                               `#` +
