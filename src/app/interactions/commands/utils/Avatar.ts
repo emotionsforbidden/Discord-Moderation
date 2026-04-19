@@ -1,18 +1,21 @@
 import {
     ApplicationCommandOptionType,
     ChatInputCommandInteraction,
+    ContainerBuilder,
     GuildMember,
+    MediaGalleryBuilder,
+    MediaGalleryItemBuilder,
     MessageFlags,
     User
 } from 'discord.js';
 import { Discord, Slash, SlashChoice, SlashOption } from 'discordx';
-import { inject, injectable } from 'tsyringe';
+import { inject, singleton } from 'tsyringe';
 import { ResponsesService } from '@src/libs/responses/Responses.service';
 import { AvatarOrBannerType } from '@src/libs/users/enums/AvatarOrBannerType';
 import { UtilsService } from '@src/libs/utils/Utils.service';
 
 @Discord()
-@injectable()
+@singleton()
 export class AvatarCommand {
     public constructor(
         @inject(ResponsesService) private readonly responses: ResponsesService,
@@ -54,17 +57,25 @@ export class AvatarCommand {
         ) as GuildMember;
         const avatarType = avatarTypeOption ?? AvatarOrBannerType.GLOBAL;
 
-        return await this.responses.replyWithMessage(ctx, {
-            embeds: [
+        await this.responses.replyWithMessage(ctx, {
+            components: [
                 this.responses
-                    .getEmbedTemplate(null)
-                    .setImage(
-                        avatarType === AvatarOrBannerType.SERVER
-                            ? member.displayAvatarURL({ size: 1024 })
-                            : member.user.displayAvatarURL({ size: 1024 })
+                    .modifyContainer(new ContainerBuilder(), null, [
+                        `## Member avatar — ${member.user.username}`
+                    ])
+                    .addMediaGalleryComponents(
+                        new MediaGalleryBuilder().addItems(
+                            new MediaGalleryItemBuilder().setURL(
+                                avatarType === AvatarOrBannerType.SERVER
+                                    ? member.displayAvatarURL({ size: 1024 })
+                                    : member.user.displayAvatarURL({
+                                          size: 1024
+                                      })
+                            )
+                        )
                     )
-                    .setTitle(`Member avatar — ${member.user.displayName}`)
-            ]
+            ],
+            flags: MessageFlags.IsComponentsV2
         });
     }
 }

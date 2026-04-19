@@ -1,4 +1,4 @@
-import { inject, injectable } from 'tsyringe';
+import { inject, singleton } from 'tsyringe';
 import { ConfigsStorage } from '@config';
 import {
     Guild,
@@ -8,11 +8,13 @@ import {
     GuildTextBasedChannel,
     User
 } from 'discord.js';
-import { CustomLogger } from '@src/libs/common/logger/Logger';
+import { CustomLogger } from '@src/libs/common/logger/CustomLogger';
 import { PaginateDto } from '@src/libs/utils/dto/PaginateDto';
 import { AnyInteraction } from '@src/libs/common/discordjs/types/AnyInteraction';
+import { Client } from 'discordx';
+import { PaginatorPageAction } from '@src/libs/responses/enums/PaginatorPageAction';
 
-@injectable()
+@singleton()
 export class UtilsService {
     private readonly configs = ConfigsStorage;
 
@@ -28,7 +30,6 @@ export class UtilsService {
         try {
             return await guild.members.fetch(userId);
         } catch (error) {
-            this.logger.handleError(error, `Unknown member with ID ${userId}`);
             return null;
         }
     }
@@ -39,7 +40,6 @@ export class UtilsService {
         try {
             return await guild.roles.fetch(roleId);
         } catch (error) {
-            this.logger.handleError(error, `Unknown role with ID ${roleId}`);
             return null;
         }
     }
@@ -53,10 +53,16 @@ export class UtilsService {
         try {
             return (await guild.channels.fetch(channelId)) as T;
         } catch (error) {
-            this.logger.handleError(
-                error,
-                `Unknown channel with ID ${channelId}`
-            );
+            return null;
+        }
+    }
+
+    public async getGuild(client: Client, guildId: string | null) {
+        if (!guildId) return null;
+
+        try {
+            return await client.guilds.fetch(guildId);
+        } catch (error) {
             return null;
         }
     }
@@ -108,6 +114,24 @@ export class UtilsService {
                 `Cannot get messages from the channel with ID ${channel.id}`
             );
             return null;
+        }
+    }
+
+    public calculatePageNumber(
+        pageNumber: number,
+        action: PaginatorPageAction,
+        length: number,
+        itemsOnPage: number = 5
+    ) {
+        switch (action) {
+            case PaginatorPageAction.MOVE_START:
+                return 0;
+            case PaginatorPageAction.MOVE_END:
+                return Math.max(Math.ceil(length / itemsOnPage) - 1, 0);
+            case PaginatorPageAction.MOVE_RIGHT:
+                return pageNumber + 1;
+            case PaginatorPageAction.MOVE_LEFT:
+                return pageNumber - 1;
         }
     }
 }

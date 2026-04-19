@@ -1,23 +1,23 @@
 import { Discord, Slash, SlashOption } from 'discordx';
-import { inject, injectable } from 'tsyringe';
+import { inject, singleton } from 'tsyringe';
 import { ResponsesService } from '@src/libs/responses/Responses.service';
 import {
     ApplicationCommandOptionType,
+    bold,
     ChatInputCommandInteraction,
+    ContainerBuilder,
     GuildMember,
     MessageFlags,
     User
 } from 'discord.js';
 import { UtilsService } from '@src/libs/utils/Utils.service';
-import { CustomLogger } from '@src/libs/common/logger/Logger';
 
 @Discord()
-@injectable()
+@singleton()
 export class ClearCommand {
     public constructor(
         @inject(ResponsesService) private readonly responses: ResponsesService,
-        @inject(UtilsService) private readonly utils: UtilsService,
-        @inject(CustomLogger) private readonly logger: CustomLogger
+        @inject(UtilsService) private readonly utils: UtilsService
     ) {}
 
     @Slash({
@@ -49,15 +49,21 @@ export class ClearCommand {
         });
 
         const channel = ctx.channel;
+        const builder = new ContainerBuilder();
 
         if (!channel) {
             return await this.responses.replyWithMessage(ctx, {
-                embeds: [
-                    this.responses
-                        .getEmbedTemplate(ctx.member.displayAvatarURL())
-                        .setTitle('Messages delete')
-                        .setDescription('Channel **not found**')
-                ]
+                components: [
+                    this.responses.modifyContainer(
+                        builder,
+                        ctx.user.displayAvatarURL(),
+                        [
+                            `## Messages delete`,
+                            `${ctx.user}, Channel ${bold(`not found`)}`
+                        ]
+                    )
+                ],
+                flags: MessageFlags.IsComponentsV2
             });
         }
 
@@ -65,12 +71,17 @@ export class ClearCommand {
 
         if (!messages) {
             return await this.responses.replyWithMessage(ctx, {
-                embeds: [
-                    this.responses
-                        .getEmbedTemplate(ctx.member.displayAvatarURL())
-                        .setTitle('Messages delete')
-                        .setDescription('Messages **not found**')
-                ]
+                components: [
+                    this.responses.modifyContainer(
+                        builder,
+                        ctx.user.displayAvatarURL(),
+                        [
+                            `## Messages delete`,
+                            `${ctx.user}, Messages ${bold(`not found`)}`
+                        ]
+                    )
+                ],
+                flags: MessageFlags.IsComponentsV2
             });
         }
 
@@ -85,35 +96,35 @@ export class ClearCommand {
 
         if (deleteCount === 0) {
             return await this.responses.replyWithMessage(ctx, {
-                embeds: [
-                    this.responses
-                        .getEmbedTemplate(ctx.member.displayAvatarURL())
-                        .setTitle('Messages delete')
-                        .setDescription('Messages **not found**')
-                ]
+                components: [
+                    this.responses.modifyContainer(
+                        builder,
+                        ctx.user.displayAvatarURL(),
+                        [
+                            `## Messages delete`,
+                            `${ctx.user}, Messages ${bold(`not found`)}`
+                        ]
+                    )
+                ],
+                flags: MessageFlags.IsComponentsV2
             });
         }
 
-        try {
-            await channel.bulkDelete(filteredMessages.first(deleteCount), true);
-        } catch (error) {
-            this.logger.handleError(
-                error,
-                `Cannot delete messages in channel ${channel.id}`
-            );
-        }
-
-        return await this.responses.replyWithMessage(ctx, {
-            embeds: [
-                this.responses
-                    .getEmbedTemplate(ctx.member.displayAvatarURL())
-                    .setTitle('Messages delete')
-                    .setDescription('**Successfully deleted** messages')
-                    .setFields({
-                        name: '> Information',
-                        value: `・**Amount:** \`${amount}\`\n・**Author:** ${author ?? '`not provided`'}`
-                    })
-            ]
-        });
+        await Promise.all([
+            channel.bulkDelete(filteredMessages.first(deleteCount), true),
+            this.responses.replyWithMessage(ctx, {
+                components: [
+                    this.responses.modifyContainer(
+                        builder,
+                        ctx.user.displayAvatarURL(),
+                        [
+                            `## Messages delete`,
+                            `${ctx.user}, ${bold(`Successfully deleted`)} messages from ${channel}`
+                        ]
+                    )
+                ],
+                flags: MessageFlags.IsComponentsV2
+            })
+        ]);
     }
 }

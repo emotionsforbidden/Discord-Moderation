@@ -1,13 +1,13 @@
 export const DiscordConfig = {
     guildId: '',
     roles: {
-        mute: '',
+        textMute: '',
+        voiceMute: '',
         ban: '',
         member: '',
         banIgnore: [''],
         canInteract: [''],
-        staff: [''],
-        highStaff: ['']
+        staff: ['']
     },
     channels: {
         reports: '',

@@ -1,35 +1,32 @@
-import { ArgsOf, DApplicationCommand, Discord, Once } from 'discordx';
-import { inject, injectable } from 'tsyringe';
-import { CustomLogger } from '@src/libs/common/logger/Logger';
-import { CustomClient } from '@src/libs/common/discordjs/Client';
-import { LogLevel } from '@src/libs/common/logger/enums/LogLevel';
+import { ArgsOf, Client, Discord, Once } from 'discordx';
+import { inject, singleton } from 'tsyringe';
 import { ConfigsStorage } from '@config';
 import { ModerationService } from '@src/libs/moderation/Moderation.service';
 import { Events } from 'discord.js';
+import { UtilsService } from '@src/libs/utils/Utils.service';
 
 @Discord()
-@injectable()
+@singleton()
 export class ReadyEvent {
     private readonly configs = ConfigsStorage;
 
     public constructor(
-        @inject(CustomLogger) private readonly logger: CustomLogger,
         @inject(ModerationService)
-        private readonly moderation: ModerationService
+        private readonly moderation: ModerationService,
+        @inject(UtilsService) private readonly utils: UtilsService
     ) {}
 
     @Once({ event: Events.ClientReady })
-    public async onReady(_: ArgsOf<Events.ClientReady>, client: CustomClient) {
-        const guild = client.guilds.cache.get(this.configs.discord.guildId);
+    public async onReady(_: ArgsOf<Events.ClientReady>, client: Client) {
+        const guild = await this.utils.getGuild(
+            client,
+            this.configs.discord.guildId
+        );
 
         if (!guild) {
-            this.logger.log(LogLevel.WARN, "Bot isn't added to the server");
+            return;
         }
 
-        await client.initGuildApplicationCommands(
-            this.configs.discord.guildId,
-            client.applicationCommands as DApplicationCommand[]
-        );
         this.moderation.autoRemoveExpired(guild);
     }
 }

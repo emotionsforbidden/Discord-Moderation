@@ -1,19 +1,23 @@
 import {
     ApplicationCommandOptionType,
+    bold,
     ChatInputCommandInteraction,
+    ContainerBuilder,
     GuildMember,
+    MediaGalleryBuilder,
+    MediaGalleryItemBuilder,
     MessageFlags,
     User
 } from 'discord.js';
 import { Discord, Slash, SlashChoice, SlashOption } from 'discordx';
-import { inject, injectable } from 'tsyringe';
+import { inject, singleton } from 'tsyringe';
 import { ResponsesService } from '@src/libs/responses/Responses.service';
 import { UsersService } from '@src/libs/users/Users.service';
 import { AvatarOrBannerType } from '@src/libs/users/enums/AvatarOrBannerType';
 import { UtilsService } from '@src/libs/utils/Utils.service';
 
 @Discord()
-@injectable()
+@singleton()
 export class BannerCommand {
     public constructor(
         @inject(ResponsesService) private readonly responses: ResponsesService,
@@ -57,24 +61,37 @@ export class BannerCommand {
         const bannerType = bannerTypeOption ?? AvatarOrBannerType.GLOBAL;
         const bannerURL = await this.users.getUserBanner(member, bannerType);
 
+        const builder = new ContainerBuilder();
+
         if (!bannerURL) {
             return await this.responses.replyWithMessage(ctx, {
-                embeds: [
-                    this.responses
-                        .getEmbedTemplate(ctx.member.displayAvatarURL())
-                        .setTitle(`Member banner — ${member.user.displayName}`)
-                        .setDescription("Member **doesn't have** banner")
-                ]
+                components: [
+                    this.responses.modifyContainer(
+                        builder,
+                        member.displayAvatarURL(),
+                        [
+                            `## Member banner — ${member.user.username}`,
+                            `${ctx.user}, ${member} ${bold(`doesn't have`)} a banner`
+                        ]
+                    )
+                ],
+                flags: MessageFlags.IsComponentsV2
             });
         }
 
-        return await this.responses.replyWithMessage(ctx, {
-            embeds: [
+        await this.responses.replyWithMessage(ctx, {
+            components: [
                 this.responses
-                    .getEmbedTemplate(null)
-                    .setImage(bannerURL)
-                    .setTitle(`Member banner — ${member.user.displayName}`)
-            ]
+                    .modifyContainer(builder, null, [
+                        `## Member banner — ${member.user.username}`
+                    ])
+                    .addMediaGalleryComponents(
+                        new MediaGalleryBuilder().addItems(
+                            new MediaGalleryItemBuilder().setURL(bannerURL)
+                        )
+                    )
+            ],
+            flags: MessageFlags.IsComponentsV2
         });
     }
 }

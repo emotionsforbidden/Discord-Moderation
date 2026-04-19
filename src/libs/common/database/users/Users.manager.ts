@@ -1,10 +1,10 @@
-import { inject, injectable } from 'tsyringe';
+import { inject, singleton } from 'tsyringe';
 import { Repository } from 'typeorm';
 import { UserModel } from '@src/libs/common/database/users/User.model';
-import { CustomDatabase } from '@src/libs/common/database/Database';
-import { DateService } from '@src/libs/date/Date.service';
+import { CustomDatabase } from '@src/libs/common/database/CustomDatabase';
+import { DateService } from '@src/libs/common/date/Date.service';
 
-@injectable()
+@singleton()
 export class UsersManager {
     private readonly repository: Repository<UserModel>;
 
@@ -40,23 +40,40 @@ export class UsersManager {
         return doc;
     }
 
-    public async getExpiredMutes() {
+    public async getExpiredTextMutes() {
         return await this.repository
             .createQueryBuilder('user')
-            .where('user.muteInfo IS NOT NULL')
-            .andWhere("(user.muteInfo ->> 'expired')::bigint < :now", {
-                now: this.date.nowTimestamp()
-            })
+            .where(
+                `"activePunishments"::jsonb -> 'textMute' ->> 'status' = 'true'`
+            )
+            .andWhere(
+                `CAST("activePunishments"::jsonb -> 'textMute' ->> 'expiresAt' AS BIGINT) < :now`,
+                { now: this.date.nowTimestamp() }
+            )
+            .getMany();
+    }
+
+    public async getExpiredVoiceMutes() {
+        return await this.repository
+            .createQueryBuilder('user')
+            .where(
+                `"activePunishments"::jsonb -> 'voiceMute' ->> 'status' = 'true'`
+            )
+            .andWhere(
+                `CAST("activePunishments"::jsonb -> 'voiceMute' ->> 'expiresAt' AS BIGINT) < :now`,
+                { now: this.date.nowTimestamp() }
+            )
             .getMany();
     }
 
     public async getExpiredBans() {
         return await this.repository
             .createQueryBuilder('user')
-            .where('user.banInfo IS NOT NULL')
-            .andWhere("(user.banInfo ->> 'expired')::bigint < :now", {
-                now: this.date.nowTimestamp()
-            })
+            .where(`"activePunishments"::jsonb -> 'ban' ->> 'status' = 'true'`)
+            .andWhere(
+                `CAST("activePunishments"::jsonb -> 'ban' ->> 'expiresAt' AS BIGINT) < :now`,
+                { now: this.date.nowTimestamp() }
+            )
             .getMany();
     }
 }

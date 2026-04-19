@@ -1,5 +1,6 @@
 export enum PunishmentType {
-    WARN,
-    MUTE,
-    BAN
+    TEXT_MUTE = 'TextMute',
+    VOICE_MUTE = 'VoiceMute',
+    WARN = 'Warn',
+    BAN = 'Ban'
 }

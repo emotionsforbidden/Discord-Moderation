@@ -1,33 +1,36 @@
-import { inject, injectable } from 'tsyringe';
+import { inject, singleton } from 'tsyringe';
 import {
     ActionRowBuilder,
     AnyComponentBuilder,
-    APIEmbed,
+    bold,
     ButtonBuilder,
     ButtonStyle,
-    EmbedBuilder,
-    EmbedData,
+    ContainerBuilder,
     InteractionEditReplyOptions,
     InteractionReplyOptions,
-    ModalBuilder,
+    SectionBuilder,
+    SeparatorBuilder,
+    SeparatorSpacingSize,
     StringSelectMenuBuilder,
     StringSelectMenuOptionBuilder,
-    TextInputBuilder,
-    TextInputStyle
+    TextDisplayBuilder,
+    ThumbnailBuilder
 } from 'discord.js';
 import type { AnyInteraction } from '@src/libs/common/discordjs/types/AnyInteraction';
 import { GenerateModPanelDto } from '@src/libs/responses/dto/GenerateModPanelDto';
-import { DateService } from '@src/libs/date/Date.service';
-import { GenerateHistoryPageDto } from '@src/libs/responses/dto/GenerateHistoryPageDto';
+import { DateService } from '@src/libs/common/date/Date.service';
 import { PaginatorPageAction } from '@src/libs/responses/enums/PaginatorPageAction';
-import { TextFormattersService } from '@src/libs/text-formatters/TextFormatters.service';
+import { PunishmentType } from '@src/libs/moderation/enums/PunishmentType';
+import { UsersService } from '@src/libs/users/Users.service';
+import { TransformersService } from '@src/libs/transformers/Transformers.service';
 
-@injectable()
+@singleton()
 export class ResponsesService {
     public constructor(
         @inject(DateService) private readonly date: DateService,
-        @inject(TextFormattersService)
-        private readonly textFormat: TextFormattersService
+        @inject(UsersService) private readonly users: UsersService,
+        @inject(TransformersService)
+        private readonly transformers: TransformersService
     ) {}
 
     public async replyWithMessage(
@@ -55,177 +58,189 @@ export class ResponsesService {
             .toJSON();
     }
 
-    public getModalRowTemplate(components: TextInputBuilder[]) {
-        return new ActionRowBuilder<TextInputBuilder>().setComponents(
-            components
-        );
+    public modifyContainer(
+        builder: ContainerBuilder,
+        icon: string | null,
+        text: string[]
+    ) {
+        if (icon) {
+            builder.addSectionComponents(
+                new SectionBuilder()
+                    .setThumbnailAccessory(new ThumbnailBuilder().setURL(icon))
+                    .addTextDisplayComponents(
+                        text.map((value) =>
+                            new TextDisplayBuilder().setContent(value)
+                        )
+                    )
+            );
+        } else {
+            builder.addTextDisplayComponents(
+                text.map((value) => new TextDisplayBuilder().setContent(value))
+            );
+        }
+
+        return builder;
     }
 
-    public getEmbedTemplate(icon: string | null) {
-        return new EmbedBuilder().setColor(0x2b2d31).setThumbnail(icon);
+    public generateBackButton(
+        module: string | null,
+        params: (string | number)[] = [],
+        removeLabel: boolean = false
+    ) {
+        const builder = new ButtonBuilder()
+            .setStyle(ButtonStyle.Secondary)
+            .setCustomId(
+                `back${module}${params.length ? `-${params.join('-')}` : ``}`
+            );
+
+        if (!removeLabel) {
+            builder.setLabel(`Back`);
+        }
+
+        return builder;
     }
 
     public generateModActionPanel(dto: GenerateModPanelDto) {
-        return {
-            embeds: [
-                this.getEmbedTemplate(dto.target.displayAvatarURL())
-                    .setTitle('Moderation action')
-                    .setDescription(
+        const availablePunishmentsTypes = [
+            new StringSelectMenuOptionBuilder()
+                .setLabel(`Text mute`)
+                .setValue(PunishmentType.TEXT_MUTE),
+
+            new StringSelectMenuOptionBuilder()
+                .setLabel(`Voice mute`)
+                .setValue(PunishmentType.VOICE_MUTE),
+
+            new StringSelectMenuOptionBuilder()
+                .setLabel(`Warning`)
+                .setValue(PunishmentType.WARN),
+
+            new StringSelectMenuOptionBuilder()
+                .setLabel(`Ban`)
+                .setValue(PunishmentType.BAN)
+        ];
+
+        return dto.builder
+            .addSectionComponents(
+                new SectionBuilder()
+                    .setThumbnailAccessory(
+                        new ThumbnailBuilder().setURL(
+                            dto.target.displayAvatarURL()
+                        )
+                    )
+                    .addTextDisplayComponents(
                         [
-                            `・**Member:** ${dto.target}`,
-                            `・**Joined:** <t:${Math.trunc((dto.target.joinedTimestamp ?? this.date.nowTimestamp()) / 1000)}:D>`,
-                            `・**Created:** <t:${Math.trunc(dto.target.user.createdTimestamp / 1000)}:D>`
-                        ].join('\n')
+                            `## Selected member:`,
+                            [
+                                `- ${dto.target}`,
+                                `- ${dto.target.user.username}`,
+                                `- ${dto.target.id}`
+                            ].join(`\n`)
+                        ].map((value) =>
+                            new TextDisplayBuilder().setContent(value)
+                        )
                     )
-            ],
-            components: [
-                this.getMessageRowTemplate([
-                    new ButtonBuilder()
-                        .setLabel('Warn')
-                        .setStyle(ButtonStyle.Secondary)
-                        .setDisabled(!!dto.doc.banInfo || dto.targetIsStaff)
-                        .setCustomId(`warnUser-${dto.target.id}`),
-
-                    new ButtonBuilder()
-                        .setLabel('Mute')
-                        .setStyle(ButtonStyle.Secondary)
-                        .setDisabled(!!dto.doc.muteInfo || dto.targetIsStaff)
-                        .setCustomId(`muteUser-${dto.target.id}`),
-
-                    new ButtonBuilder()
-                        .setLabel('Ban')
-                        .setStyle(ButtonStyle.Secondary)
-                        .setDisabled(!!dto.doc.banInfo || dto.targetIsStaff)
-                        .setCustomId(`banUser-${dto.target.id}`)
-                ]),
-
-                this.getMessageRowTemplate([
-                    new ButtonBuilder()
-                        .setLabel('Unwarn')
-                        .setStyle(ButtonStyle.Secondary)
-                        .setDisabled(!dto.doc.warnsInfo)
-                        .setCustomId(`unwarnUser-${dto.target.id}`),
-
-                    new ButtonBuilder()
-                        .setLabel('Unmute')
-                        .setStyle(ButtonStyle.Secondary)
-                        .setDisabled(!dto.doc.muteInfo)
-                        .setCustomId(`unmuteUser-${dto.target.id}`),
-
-                    new ButtonBuilder()
-                        .setLabel('Unban')
-                        .setStyle(ButtonStyle.Secondary)
-                        .setDisabled(!dto.doc.banInfo)
-                        .setCustomId(`unbanUser-${dto.target.id}`)
-                ])
-            ]
-        } as InteractionEditReplyOptions;
-    }
-
-    public generateHistoryPage(dto: GenerateHistoryPageDto) {
-        const pageNumber = dto.pageNumber ?? 0;
-
-        return {
-            embeds: [
-                this.getEmbedTemplate(dto.member.displayAvatarURL())
-                    .setTitle(
-                        `Punishments history — ${dto.member.user.displayName}`
-                    )
-                    .setDescription(
-                        dto.page.sliced
-                            .map((punishment) =>
-                                [
-                                    `[<t:${Math.trunc(punishment.date / 1000)}:f>]`,
-                                    `・**Moderator:** <@${punishment.moderator}>`,
-                                    `・**Type:** \`${this.textFormat.humanizePunishmentType(punishment.type)}\``,
-                                    `・**Reason:** \`${punishment.reason}\``
-                                ].join(`\n`)
-                            )
-                            .join(`\n\n`) || `History **is empty**`
-                    )
-                    .setFooter({
-                        text: `Page ${pageNumber + 1}/${dto.page.pagesCount || 1}`
-                    })
-            ],
-            components: [
-                this.getMessageRowTemplate([
+            )
+            .addSeparatorComponents(
+                new SeparatorBuilder()
+                    .setDivider(true)
+                    .setSpacing(SeparatorSpacingSize.Large)
+            )
+            .addTextDisplayComponents(
+                [
+                    `## User information:`,
+                    [
+                        `- Account created: <t:${this.transformers.toSeconds(dto.target.user.createdAt.getTime())}:f>`,
+                        `- Joined server: <t:${this.transformers.toSeconds(dto.target.joinedTimestamp ?? this.date.nowTimestamp())}:f>`,
+                        `- Device: ${bold(this.users.checkForDevice(dto.target))}`
+                    ].join(`\n`)
+                ].map((value) => new TextDisplayBuilder().setContent(value))
+            )
+            .addSeparatorComponents(
+                new SeparatorBuilder()
+                    .setSpacing(SeparatorSpacingSize.Large)
+                    .setDivider(true)
+            )
+            .addTextDisplayComponents(
+                [
+                    `## Active punishments:`,
+                    [
+                        `- Text mute: ${this.transformers.humanizeBoolean(dto.doc.activePunishments.textMute.status)}`,
+                        `- Voice mute: ${this.transformers.humanizeBoolean(dto.doc.activePunishments.voiceMute.status)}`,
+                        `- Warnings: ${bold(String(dto.doc.activePunishments.warns))}`,
+                        `- Ban: ${this.transformers.humanizeBoolean(dto.doc.activePunishments.ban.status)}`
+                    ].join(`\n`)
+                ].map((value) => new TextDisplayBuilder().setContent(value))
+            )
+            .addSeparatorComponents(
+                new SeparatorBuilder()
+                    .setSpacing(SeparatorSpacingSize.Large)
+                    .setDivider(true)
+            )
+            .addActionRowComponents((actionRow) =>
+                actionRow.setComponents(
                     new StringSelectMenuBuilder()
-                        .setPlaceholder('Select punishment')
-                        .setDisabled(!dto.page.sliced.length)
+                        .setPlaceholder(`Choose punishment type to execute`)
                         .setCustomId(
-                            `punishmentInfo-${dto.executor.id}-${dto.member.id}`
+                            `moderationPunishmentExecute-${dto.target.id}`
                         )
-                        .setOptions(
-                            dto.page.sliced.length
-                                ? dto.page.sliced.map((_, index) => {
-                                      return new StringSelectMenuOptionBuilder()
-                                          .setLabel(
-                                              `#` +
-                                                  String(
-                                                      index + 1 + dto.page.from
-                                                  )
-                                          )
-                                          .setValue(
-                                              String(index + dto.page.from)
-                                          );
-                                  })
-                                : []
-                        )
-                ]),
-
-                this.getMessageRowTemplate([
-                    new ButtonBuilder()
-                        .setLabel('Left')
-                        .setStyle(ButtonStyle.Secondary)
-                        .setDisabled(!dto.pageNumber)
+                        .setDisabled(dto.targetIsStaff)
+                        .setOptions(availablePunishmentsTypes)
+                )
+            )
+            .addActionRowComponents((actionRow) =>
+                actionRow.setComponents(
+                    new StringSelectMenuBuilder()
+                        .setPlaceholder(`Choose punishment type to revoke`)
                         .setCustomId(
-                            `punishmentsHistoryPaginator-${PaginatorPageAction.MOVE_LEFT}-${dto.executor.id}-${dto.member.id}-${dto.pageNumber}`
-                        ),
-
-                    new ButtonBuilder()
-                        .setLabel('Right')
-                        .setStyle(ButtonStyle.Secondary)
-                        .setDisabled(!dto.page.checkForNextPage)
-                        .setCustomId(
-                            `punishmentsHistoryPaginator-${PaginatorPageAction.MOVE_RIGHT}-${dto.executor.id}-${dto.member.id}-${dto.pageNumber}`
+                            `moderationPunishmentRemove-${dto.target.id}`
                         )
-                ])
-            ]
-        } as InteractionEditReplyOptions;
-    }
-
-    public generatePunishmentModal(
-        customId: string,
-        withExpirationDate: boolean = true
-    ) {
-        const defaultComponents = this.getModalRowTemplate([
-            new TextInputBuilder()
-                .setLabel('Reason')
-                .setMaxLength(150)
-                .setStyle(TextInputStyle.Paragraph)
-                .setCustomId('reason')
-        ]);
-
-        return new ModalBuilder()
-            .setTitle(`Punishment modal`)
-            .setCustomId(customId)
-            .setComponents(
-                withExpirationDate
-                    ? [
-                          defaultComponents,
-                          this.getModalRowTemplate([
-                              new TextInputBuilder()
-                                  .setLabel('Duration')
-                                  .setPlaceholder('Example: 1m, 1h')
-                                  .setStyle(TextInputStyle.Short)
-                                  .setCustomId('duration')
-                          ])
-                      ]
-                    : [defaultComponents]
+                        .setOptions(availablePunishmentsTypes)
+                )
             );
     }
 
-    public cloneEmbed(data: EmbedData | APIEmbed) {
-        return new EmbedBuilder(data);
+    public paginator(
+        module: string,
+        needToDisable: {
+            start: boolean;
+            left: boolean;
+            right: boolean;
+            end: boolean;
+        },
+        parameters: (string | number)[]
+    ) {
+        return [
+            new ButtonBuilder()
+                .setLabel(`Start`)
+                .setStyle(ButtonStyle.Secondary)
+                .setDisabled(needToDisable.start)
+                .setCustomId(
+                    `${module}Page-${PaginatorPageAction.MOVE_START}${parameters ? `-${parameters?.join('-')}` : ``}`
+                ),
+
+            new ButtonBuilder()
+                .setLabel(`Left`)
+                .setStyle(ButtonStyle.Secondary)
+                .setDisabled(needToDisable.left)
+                .setCustomId(
+                    `${module}Page-${PaginatorPageAction.MOVE_LEFT}${parameters ? `-${parameters?.join('-')}` : ``}`
+                ),
+
+            new ButtonBuilder()
+                .setLabel(`Right`)
+                .setStyle(ButtonStyle.Secondary)
+                .setDisabled(needToDisable.right)
+                .setCustomId(
+                    `${module}Page-${PaginatorPageAction.MOVE_RIGHT}${parameters ? `-${parameters?.join('-')}` : ``}`
+                ),
+
+            new ButtonBuilder()
+                .setLabel(`End`)
+                .setStyle(ButtonStyle.Secondary)
+                .setDisabled(needToDisable.end)
+                .setCustomId(
+                    `${module}Page-${PaginatorPageAction.MOVE_END}${parameters ? `-${parameters?.join('-')}` : ``}`
+                )
+        ];
     }
 }
