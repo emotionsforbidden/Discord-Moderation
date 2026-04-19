@@ -214,7 +214,7 @@ export class ModerationHistoryCommand {
                     } catch (error) {
                         this.logger.handleError(
                             error,
-                            `Не удалось удалить сообщение с ID ${interactionCallback.resource.message.id}`
+                            `Cannot delete message with ID ${interactionCallback.resource.message.id}`
                         );
                     }
                 }
