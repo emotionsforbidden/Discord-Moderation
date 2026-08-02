@@ -6,16 +6,15 @@ import {
     IActivePunishments
 } from '@src/libs/moderation/interfaces/ActivePunishments';
 
+@Index(['userId', 'guildId'], { unique: true })
 @Entity({ name: 'users' })
 export class UserModel extends BaseEntity {
     @Column(() => SnowflakeIdModel)
     public snowflake: SnowflakeIdModel;
 
-    @Index()
-    @Column({ type: 'text', unique: true })
+    @Column({ type: 'text' })
     public userId: string;
 
-    @Index()
     @Column({ type: 'text' })
     public guildId: string;
 

@@ -36,7 +36,6 @@ export class UsersManager {
         doc.guildId = guildId;
 
         await doc.save();
-
         return doc;
     }
 
