@@ -1,5 +1,9 @@
 import { inject, singleton } from 'tsyringe';
-import { GuildMember, PermissionFlagsBits } from 'discord.js';
+import {
+    GuildMember,
+    MessageCreateOptions,
+    PermissionFlagsBits
+} from 'discord.js';
 import { AvatarOrBannerType } from '@src/libs/users/enums/AvatarOrBannerType';
 import { CustomLogger } from '@src/libs/common/logger/CustomLogger';
 import { ConfigsStorage } from '@config';
@@ -124,6 +128,20 @@ export class UsersService {
             this.logger.handleError(
                 error,
                 `Cannot remove roles with ID ${uniqueRoles.join(`, `)} to member with ID ${member.id}`
+            );
+        }
+    }
+
+    public async sendMessage(
+        member: GuildMember,
+        options: MessageCreateOptions
+    ) {
+        try {
+            return await member.send(options);
+        } catch (error) {
+            this.logger.handleError(
+                error,
+                `Cannot send message to member with ID ${member.id}`
             );
         }
     }

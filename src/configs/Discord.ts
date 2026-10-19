@@ -1,28 +1,28 @@
 export const DiscordConfig = {
-    guildId: '1423601556938297478',
+    guildId: '', // server
     apiUrl: 'https://discord.com/api/',
     cdnUrl: 'https://cdn.discordapp.com/',
     roles: {
-        textMute: '',
-        voiceMute: '',
-        ban: '',
-        member: '',
-        banIgnore: [''],
-        canInteract: [''],
-        staff: [''],
+        textMute: '', // text mute role
+        voiceMute: '', // voice mute role
+        ban: '', // ban role
+        member: '', // member role
+        keepAfterBan: [''], // roles to keep after ban
+        canInteract: [''], // roles to interact with moderation commands
+        staff: [''], // staff role
         reports: {
-            all: [''],
-            high: ['']
+            all: [''], // permissions for default reports
+            high: [''] // permissions for staff reports
         }
     },
     channels: {
         reports: {
-            text: '1561650550007795802',
-            category: '1516462553784647700'
+            text: '', // channel for reports
+            category: '' // category for reports
         },
         logs: {
-            moderation: '',
-            reports: ''
+            moderation: '', // channel for moderation logs
+            reports: '' // channel for reports logs
         }
     }
 };

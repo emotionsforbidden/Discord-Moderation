@@ -1,4 +1,4 @@
-import { Discord, Slash, SlashOption } from 'discordx';
+import { Client, Discord, Guard, Slash, SlashOption } from 'discordx';
 import { inject, singleton } from 'tsyringe';
 import { ResponsesService } from '@src/libs/responses/Responses.service';
 import {
@@ -8,12 +8,15 @@ import {
     ContainerBuilder,
     GuildMember,
     MessageFlags,
+    PermissionFlagsBits,
     User
 } from 'discord.js';
 import { UtilsService } from '@src/libs/utils/Utils.service';
+import { IsModeratorGuard } from '@src/libs/moderation/guards/IsModerator.guard';
 
 @Discord()
 @singleton()
+@Guard(IsModeratorGuard)
 export class ClearCommand {
     public constructor(
         @inject(ResponsesService) private readonly responses: ResponsesService,
@@ -22,7 +25,8 @@ export class ClearCommand {
 
     @Slash({
         name: 'clear',
-        description: 'Delete messages from the channel'
+        description: 'Delete messages from the channel',
+        defaultMemberPermissions: PermissionFlagsBits.Administrator
     })
     public async execute(
         @SlashOption({
@@ -34,7 +38,6 @@ export class ClearCommand {
             maxValue: 100
         })
         amount: number,
-
         @SlashOption({
             description: 'Messages author',
             name: 'author',
@@ -42,14 +45,16 @@ export class ClearCommand {
             type: ApplicationCommandOptionType.User
         })
         author: GuildMember | User,
-        ctx: ChatInputCommandInteraction<'cached'>
+        ctx: ChatInputCommandInteraction<'cached'>,
+        _client: Client,
+        guardData: { builder: ContainerBuilder }
     ) {
         await ctx.deferReply({
             flags: MessageFlags.Ephemeral
         });
 
         const channel = ctx.channel;
-        const builder = new ContainerBuilder();
+        const builder = guardData.builder;
 
         if (!channel) {
             return await this.responses.replyWithMessage(ctx, {

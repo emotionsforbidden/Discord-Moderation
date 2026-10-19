@@ -48,6 +48,6 @@ export class ReportsManager {
                 id
             },
             status: false
-        })
+        });
     }
 }

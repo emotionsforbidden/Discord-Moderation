@@ -190,6 +190,6 @@ export class ReportDeclineModal {
 
         await this.responses.replyWithMessage(ctx, {
             components: [copyBuilder]
-        })
+        });
     }
 }

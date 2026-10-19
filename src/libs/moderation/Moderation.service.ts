@@ -3,13 +3,23 @@ import { ExecutePunishmentDto } from '@src/libs/moderation/dto/ExecutePunishment
 import { PunishmentType } from '@src/libs/moderation/enums/PunishmentType';
 import { ConfigsStorage as configs, ConfigsStorage } from '@config';
 import { DateService } from '@src/libs/common/date/Date.service';
-import { ClientUser, Guild, GuildMember } from 'discord.js';
+import {
+    bold,
+    ClientUser,
+    ContainerBuilder,
+    Guild,
+    GuildMember,
+    MessageFlags
+} from 'discord.js';
 import { UsersService } from '@src/libs/users/Users.service';
 import CronTime from 'cron-time-generator';
 import { CronJob } from 'cron';
 import { UtilsService } from '@src/libs/utils/Utils.service';
 import { UsersManager } from '@src/libs/common/database/users/Users.manager';
 import ms from 'ms';
+import { ResponsesService } from '@src/libs/responses/Responses.service';
+import { TransformersService } from '@src/libs/transformers/Transformers.service';
+import { LogsService } from '@src/libs/logs/Logs.service';
 
 @singleton()
 export class ModerationService {
@@ -19,20 +29,23 @@ export class ModerationService {
         @inject(DateService) private readonly date: DateService,
         @inject(UsersService) private readonly users: UsersService,
         @inject(UtilsService) private readonly utils: UtilsService,
-        @inject(UsersManager) private readonly usersDatabase: UsersManager
+        @inject(UsersManager) private readonly usersDatabase: UsersManager,
+        @inject(ResponsesService) private readonly responses: ResponsesService,
+        @inject(TransformersService)
+        private readonly transformers: TransformersService,
+        @inject(LogsService) private readonly logs: LogsService
     ) {}
 
     public async executeBan(dto: ExecutePunishmentDto) {
-        const banIgnores = new Set(this.configs.discord.roles.banIgnore);
-
+        const keepAfterBan = new Set(this.configs.discord.roles.keepAfterBan);
         const rolesToRestore = [
             ...dto.target.roles.cache
-                .filter((role) => !role.managed || !banIgnores.has(role.id))
+                .filter((role) => !role.managed || !keepAfterBan.has(role.id))
                 .keys()
         ];
         const rolesToSet = [
             ...dto.target.roles.cache
-                .filter((role) => role.managed || banIgnores.has(role.id))
+                .filter((role) => role.managed || keepAfterBan.has(role.id))
                 .keys()
         ];
 
@@ -56,7 +69,28 @@ export class ModerationService {
 
         await Promise.all([
             dto.doc.save(),
-            this.users.setRoles(dto.target, rolesToSet)
+            this.users.sendMessage(dto.target, {
+                components: [
+                    this.responses.modifyContainer(
+                        new ContainerBuilder(),
+                        dto.target.displayAvatarURL({
+                            forceStatic: true
+                        }),
+                        [
+                            `## You were muted`,
+                            `${dto.target}, You ${bold(`were muted`)} by ${dto.executor}`,
+                            [
+                                `-# - ${bold(`Type:`)} Voice mute`,
+                                `-# - ${bold(`Reason:`)} ${dto.reason}`,
+                                `-# - ${bold(`Expired:`)} <t:${this.transformers.toSeconds(dto.endsAt)}:f>`
+                            ].join(`\n`)
+                        ]
+                    )
+                ],
+                flags: MessageFlags.IsComponentsV2
+            }),
+            this.users.setRoles(dto.target, rolesToSet),
+            this.logs.executeBan(dto)
         ]);
     }
 
@@ -75,9 +109,30 @@ export class ModerationService {
 
         await Promise.all([
             dto.doc.save(),
+            this.users.sendMessage(dto.target, {
+                components: [
+                    this.responses.modifyContainer(
+                        new ContainerBuilder(),
+                        dto.target.displayAvatarURL({
+                            forceStatic: true
+                        }),
+                        [
+                            `## You were muted`,
+                            `${dto.target}, You ${bold(`were muted`)} by ${dto.executor}`,
+                            [
+                                `-# - ${bold(`Type:`)} Text mute`,
+                                `-# - ${bold(`Reason:`)} ${dto.reason}`,
+                                `-# - ${bold(`Expired:`)} <t:${this.transformers.toSeconds(dto.endsAt)}:f>`
+                            ].join(`\n`)
+                        ]
+                    )
+                ],
+                flags: MessageFlags.IsComponentsV2
+            }),
             this.users.addRoles(dto.target, [
                 this.configs.discord.roles.textMute
-            ])
+            ]),
+            this.logs.executeTextMute(dto)
         ]);
     }
 
@@ -96,9 +151,30 @@ export class ModerationService {
 
         await Promise.all([
             dto.doc.save(),
+            this.users.sendMessage(dto.target, {
+                components: [
+                    this.responses.modifyContainer(
+                        new ContainerBuilder(),
+                        dto.target.displayAvatarURL({
+                            forceStatic: true
+                        }),
+                        [
+                            `## You were banned`,
+                            `${dto.target}, You ${bold(`were muted`)} by ${dto.executor}`,
+                            [
+                                `-# - ${bold(`Type:`)} Voice mute`,
+                                `-# - ${bold(`Reason:`)} ${dto.reason}`,
+                                `-# - ${bold(`Expired:`)} <t:${this.transformers.toSeconds(dto.endsAt)}:f>`
+                            ].join(`\n`)
+                        ]
+                    )
+                ],
+                flags: MessageFlags.IsComponentsV2
+            }),
             this.users.addRoles(dto.target, [
                 this.configs.discord.roles.voiceMute
-            ])
+            ]),
+            this.logs.executeVoiceMute(dto)
         ]);
     }
 
@@ -119,7 +195,26 @@ export class ModerationService {
                 endsAt: this.date.nowTimestamp() + ms('30d')
             });
         } else {
-            await dto.doc.save();
+            await Promise.all([
+                this.users.sendMessage(dto.target, {
+                    components: [
+                        this.responses.modifyContainer(
+                            new ContainerBuilder(),
+                            dto.target.displayAvatarURL({
+                                forceStatic: true
+                            }),
+                            [
+                                `## You were warned`,
+                                `${dto.target}, You ${bold(`were warned`)} by ${dto.executor}`,
+                                `-# - ${bold(`Reason:`)} ${dto.reason}`
+                            ]
+                        )
+                    ],
+                    flags: MessageFlags.IsComponentsV2
+                }),
+                this.logs.executeWarn(dto),
+                dto.doc.save()
+            ]);
         }
     }
 
@@ -216,6 +311,7 @@ export class ModerationService {
 
         await Promise.all([
             dto.doc.save(),
+            this.logs.removeTextMute(dto),
             this.users.removeRoles(dto.target, [
                 this.configs.discord.roles.textMute
             ])
@@ -234,6 +330,7 @@ export class ModerationService {
 
         await Promise.all([
             dto.doc.save(),
+            this.logs.removeVoiceMute(dto),
             this.users.removeRoles(dto.target, [
                 this.configs.discord.roles.voiceMute
             ])
@@ -246,7 +343,7 @@ export class ModerationService {
         }
     ) {
         const ignoredRoles = new Set([
-            ...this.configs.discord.roles.banIgnore,
+            ...this.configs.discord.roles.keepAfterBan,
             this.configs.discord.roles.ban
         ]);
         const rolesToSet = dto.doc.activePunishments.ban.rolesToRestore.filter(
@@ -257,6 +354,7 @@ export class ModerationService {
 
         await Promise.all([
             dto.doc.save(),
+            this.logs.removeBan(dto),
             this.users.setRoles(
                 dto.target,
                 rolesToSet.concat([
@@ -272,6 +370,7 @@ export class ModerationService {
         dto: Omit<ExecutePunishmentDto, 'endsAt' | 'type'>
     ) {
         dto.doc.activePunishments.warns--;
-        await dto.doc.save();
+
+        await Promise.all([dto.doc.save(), this.logs.removeWarn(dto)]);
     }
 }

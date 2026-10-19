@@ -158,7 +158,7 @@ export class ModerationPunishmentExecuteVoiceMuteModal {
                     this.responses
                         .modifyContainer(
                             builder,
-                            ctx.user.displayAvatarURL({ forceStatic: true }),
+                            target.displayAvatarURL({ forceStatic: true }),
                             [
                                 `## Voice mute execute`,
                                 `${ctx.user}, You have ${bold(`successfully muted`)} ${target}`,

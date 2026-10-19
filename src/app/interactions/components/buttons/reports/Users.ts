@@ -164,7 +164,7 @@ export class ReportUsersButton {
                                             }),
                                             [
                                                 `## Discussion members`,
-                                                `${collected.user}, You cannot interact ${bold(`with bot or yourself`)}`
+                                                `${collected.user}, You ${bold(`cannot interact`)} with bot or yourself`
                                             ]
                                         )
                                     ],
@@ -212,10 +212,10 @@ export class ReportUsersButton {
                         );
 
                         const nullOptionIndex = options.findIndex(
-                            (option) => option.data.label === `null`
+                            (option) => option.data.value === 'null'
                         );
 
-                        if (nullOptionIndex) {
+                        if (nullOptionIndex !== -1) {
                             options.splice(nullOptionIndex, 1);
                         }
                         guardData.doc.addedUsers = Array.from(ids);

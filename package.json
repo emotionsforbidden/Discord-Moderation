@@ -26,7 +26,11 @@
         "reflect-metadata": "^0.2.2",
         "tsx": "^4.21.0",
         "tsyringe": "^4.10.0",
-        "typeorm": "^0.3.28"
+        "typeorm": "^0.3.31"
+    },
+    "overrides": {
+        "react": "19.1.1",
+        "react-dom": "19.1.1"
     },
     "scripts": {
         "lint": "eslint . --ext .ts --fix",

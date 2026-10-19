@@ -46,9 +46,9 @@ export class ResponsesService {
                     allowedMentions: withMention
                         ? undefined
                         : {
-                            parse: [],
-                            repliedUser: false
-                        }
+                              parse: [],
+                              repliedUser: false
+                          }
                 });
             } catch (error) {
                 this.logger.handleError(error, `Error with response`);
@@ -63,9 +63,9 @@ export class ResponsesService {
                     allowedMentions: withMention
                         ? undefined
                         : {
-                            parse: [],
-                            repliedUser: false
-                        }
+                              parse: [],
+                              repliedUser: false
+                          }
                 });
             } catch (error) {
                 this.logger.handleError(error, `Error with response`);
@@ -79,9 +79,9 @@ export class ResponsesService {
                 allowedMentions: withMention
                     ? undefined
                     : {
-                        parse: [],
-                        repliedUser: false
-                    }
+                          parse: [],
+                          repliedUser: false
+                      }
             });
         } catch (error) {
             this.logger.handleError(error, `Error with response`);

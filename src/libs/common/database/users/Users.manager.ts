@@ -4,13 +4,14 @@ import { UserModel } from '@src/libs/common/database/users/User.model';
 import { CustomDatabase } from '@src/libs/common/database/CustomDatabase';
 import { DateService } from '@src/libs/common/date/Date.service';
 
+type PunishmentType = 'textMute' | 'voiceMute' | 'ban';
+
 @singleton()
 export class UsersManager {
     private readonly repository: Repository<UserModel>;
 
     public constructor(
-        @inject(CustomDatabase)
-        private readonly database: CustomDatabase,
+        @inject(CustomDatabase) private readonly database: CustomDatabase,
         @inject(DateService) private readonly date: DateService
     ) {
         this.repository = this.database.getRepository(UserModel);
@@ -19,68 +20,56 @@ export class UsersManager {
     public async get(
         userId: string,
         guildId: string,
-        select?: FindOptionsSelect<UserModel> | undefined
+        select?: FindOptionsSelect<UserModel>
     ) {
         const doc = await this.repository.findOne({
-            where: {
-                userId,
-                guildId
-            },
+            where: { userId, guildId },
             select
         });
 
-        if (doc) {
-            return doc;
-        }
-
-        return await this.create(userId, guildId);
+        return doc ?? (await this.create(userId, guildId));
     }
 
     private async create(userId: string, guildId: string) {
-        const doc = new UserModel();
+        await this.repository
+            .createQueryBuilder()
+            .insert()
+            .values(this.repository.create({ userId, guildId }))
+            .orIgnore()
+            .execute();
 
-        doc.userId = userId;
-        doc.guildId = guildId;
-
-        await doc.save();
-        return doc;
+        return this.repository.findOneOrFail({ where: { userId, guildId } });
     }
 
-    public async getExpiredTextMutes() {
-        return await this.repository
+    public getExpiredTextMutes() {
+        return this.expiredQuery('textMute').getMany();
+    }
+
+    public getExpiredVoiceMutes() {
+        return this.expiredQuery('voiceMute').getMany();
+    }
+
+    public getExpiredBans() {
+        return this.expiredQuery('ban')
+            .select([
+                'user.userId',
+                'user.guildId',
+                'user.activePunishments',
+                'user.snowflakeId'
+            ])
+            .getMany();
+    }
+
+    private expiredQuery(type: PunishmentType) {
+        return this.repository
             .createQueryBuilder('user')
             .where(
-                `"activePunishments"::jsonb -> 'textMute' ->> 'status' = 'true'`
+                `"user"."activePunishments"::jsonb -> :type ->> 'status' = 'true'`,
+                { type }
             )
             .andWhere(
-                `CAST("activePunishments"::jsonb -> 'textMute' ->> 'expiresAt' AS BIGINT) < :now`,
-                { now: this.date.nowTimestamp() }
-            )
-            .getMany();
-    }
-
-    public async getExpiredVoiceMutes() {
-        return await this.repository
-            .createQueryBuilder('user')
-            .where(
-                `"activePunishments"::jsonb -> 'voiceMute' ->> 'status' = 'true'`
-            )
-            .andWhere(
-                `CAST("activePunishments"::jsonb -> 'voiceMute' ->> 'expiresAt' AS BIGINT) < :now`,
-                { now: this.date.nowTimestamp() }
-            )
-            .getMany();
-    }
-
-    public async getExpiredBans() {
-        return await this.repository
-            .createQueryBuilder('user')
-            .where(`"activePunishments"::jsonb -> 'ban' ->> 'status' = 'true'`)
-            .andWhere(
-                `CAST("activePunishments"::jsonb -> 'ban' ->> 'expiresAt' AS BIGINT) < :now`,
-                { now: this.date.nowTimestamp() }
-            )
-            .select(['userId', 'guildId', 'activePunishments'])
-            .getMany();
+                `CAST("user"."activePunishments"::jsonb -> :type ->> 'expiresAt' AS BIGINT) < :now`,
+                { type, now: this.date.nowTimestamp() }
+            );
     }
 }
