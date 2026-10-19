@@ -24,12 +24,11 @@ import ms from 'ms';
 import { PaginatorPageAction } from '@src/libs/responses/enums/PaginatorPageAction';
 import { IPunishmentInfo } from '@src/libs/moderation/interfaces/PunishmentInfo';
 import { TransformersService } from '@src/libs/transformers/Transformers.service';
-import { CustomLogger } from '@src/libs/common/logger/CustomLogger';
 
 @Discord()
 @singleton()
 export class ModerationHistoryCommand {
-    private generateHistoryPage(
+    private renderPage(
         member: GuildMember,
         punishments: IPunishmentInfo[],
         needToDisable: {
@@ -38,14 +37,16 @@ export class ModerationHistoryCommand {
             right: boolean;
             end: boolean;
         },
-        page: number = 0,
-        builder: ContainerBuilder
+        builder: ContainerBuilder,
+        page: number = 0
     ) {
         return builder
             .addSectionComponents(
                 new SectionBuilder()
                     .setThumbnailAccessory(
-                        new ThumbnailBuilder().setURL(member.displayAvatarURL())
+                        new ThumbnailBuilder().setURL(
+                            member.displayAvatarURL({ forceStatic: true })
+                        )
                     )
                     .addTextDisplayComponents(
                         [
@@ -102,8 +103,7 @@ export class ModerationHistoryCommand {
         @inject(UtilsService) private readonly utils: UtilsService,
         @inject(ResponsesService) private readonly responses: ResponsesService,
         @inject(TransformersService)
-        private readonly transformers: TransformersService,
-        @inject(CustomLogger) private readonly logger: CustomLogger
+        private readonly transformers: TransformersService
     ) {}
 
     @Slash({
@@ -129,7 +129,9 @@ export class ModerationHistoryCommand {
             ctx.deferReply({
                 withResponse: true
             }),
-            this.usersDatabase.get(member.id, ctx.guildId)
+            this.usersDatabase.get(member.id, ctx.guildId, {
+                punishments: true
+            })
         ]);
         const paginated = this.utils.paginate({
             items: doc.punishments,
@@ -138,7 +140,7 @@ export class ModerationHistoryCommand {
 
         await this.responses.replyWithMessage(ctx, {
             components: [
-                this.generateHistoryPage(
+                this.renderPage(
                     member,
                     paginated.sliced,
                     {
@@ -147,7 +149,6 @@ export class ModerationHistoryCommand {
                         right: !paginated.checkForNextPage,
                         end: !paginated.checkForNextPage
                     },
-                    0,
                     new ContainerBuilder()
                 )
             ],
@@ -191,7 +192,7 @@ export class ModerationHistoryCommand {
 
                 await this.responses.replyWithMessage(collected, {
                     components: [
-                        this.generateHistoryPage(
+                        this.renderPage(
                             member,
                             newPaginated.sliced,
                             {
@@ -200,23 +201,18 @@ export class ModerationHistoryCommand {
                                 right: !newPaginated.checkForNextPage,
                                 end: !newPaginated.checkForNextPage
                             },
-                            page,
-                            new ContainerBuilder()
+                            new ContainerBuilder(),
+                            page
                         )
                     ]
                 });
             });
 
             collector.once('end', async () => {
-                if (interactionCallback.resource?.message?.deletable) {
-                    try {
-                        await interactionCallback.resource.message.delete();
-                    } catch (error) {
-                        this.logger.handleError(
-                            error,
-                            `Cannot delete message with ID ${interactionCallback.resource.message.id}`
-                        );
-                    }
+                if (interactionCallback.resource?.message) {
+                    await this.utils.deleteMessage(
+                        interactionCallback.resource.message
+                    );
                 }
             });
         }

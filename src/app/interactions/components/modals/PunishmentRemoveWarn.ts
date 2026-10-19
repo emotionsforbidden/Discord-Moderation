@@ -39,10 +39,14 @@ export class ModerationPunishmentRemoveWarnModal {
             return await this.responses.replyWithMessage(ctx, {
                 components: [
                     this.responses
-                        .modifyContainer(builder, ctx.user.displayAvatarURL(), [
-                            `## Warning removal`,
-                            `${ctx.user}, Selected member ${bold(`not found`)}`
-                        ])
+                        .modifyContainer(
+                            builder,
+                            ctx.user.displayAvatarURL({ forceStatic: true }),
+                            [
+                                `## Warning removal`,
+                                `${ctx.user}, Selected member ${bold(`not found`)}`
+                            ]
+                        )
                         .addActionRowComponents((actionRow) =>
                             actionRow.setComponents(
                                 this.responses.generateBackButton(
@@ -56,16 +60,25 @@ export class ModerationPunishmentRemoveWarnModal {
             });
         }
 
-        const doc = await this.usersDatabase.get(targetId, ctx.guildId);
+        const doc = await this.usersDatabase.get(targetId, ctx.guildId, {
+            snowflake: {
+                id: true
+            },
+            activePunishments: true
+        });
 
         if (!doc.activePunishments.warns) {
             return await this.responses.replyWithMessage(ctx, {
                 components: [
                     this.responses
-                        .modifyContainer(builder, ctx.user.displayAvatarURL(), [
-                            `## Warning removal`,
-                            `${ctx.user}, ${target} ${bold(`doesn't have`)} warnings`
-                        ])
+                        .modifyContainer(
+                            builder,
+                            ctx.user.displayAvatarURL({ forceStatic: true }),
+                            [
+                                `## Warning removal`,
+                                `${ctx.user}, ${target} ${bold(`doesn't have`)} warnings`
+                            ]
+                        )
                         .addActionRowComponents((actionRow) =>
                             actionRow.setComponents(
                                 this.responses.generateBackButton(
@@ -83,11 +96,15 @@ export class ModerationPunishmentRemoveWarnModal {
             this.responses.replyWithMessage(ctx, {
                 components: [
                     this.responses
-                        .modifyContainer(builder, target.displayAvatarURL(), [
-                            `## Warning removal`,
-                            `${ctx.user}, You ${bold(`removed warning`)} from ${target}`,
-                            `-# - ${bold(`Reason:`)} ${reason}`
-                        ])
+                        .modifyContainer(
+                            builder,
+                            target.displayAvatarURL({ forceStatic: true }),
+                            [
+                                `## Warning removal`,
+                                `${ctx.user}, You ${bold(`removed warning`)} from ${target}`,
+                                `-# - ${bold(`Reason:`)} ${reason}`
+                            ]
+                        )
                         .addActionRowComponents((actionRow) =>
                             actionRow.setComponents(
                                 this.responses.generateBackButton(

@@ -3,7 +3,7 @@ import { config } from 'dotenv';
 import { container } from 'tsyringe';
 import { Client, DIService, tsyringeDependencyRegistryEngine } from 'discordx';
 import { CustomLogger } from '@src/libs/common/logger/CustomLogger';
-import { importx } from '@discordx/importer';
+import { dirname, importx } from '@discordx/importer';
 import { LogLevel } from '@src/libs/common/logger/enums/LogLevel';
 import { CustomDatabase } from '@src/libs/common/database/CustomDatabase';
 import { GatewayIntentBits } from 'discord.js';
@@ -13,8 +13,13 @@ config();
 DIService.engine = tsyringeDependencyRegistryEngine.setInjector(container);
 
 const bot = new Client({
-    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
-    botGuilds: [ConfigsStorage.discord.guildId]
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildPresences
+    ],
+    botGuilds: [ConfigsStorage.discord.guildId],
+    silent: false
 });
 
 async function bootstrap() {
@@ -26,10 +31,10 @@ async function bootstrap() {
     }
 
     logger.listen();
-    await importx(`${process.cwd()}/app/{events,interactions}/**/*.ts`);
+    console.log(process.cwd())
+    await importx(`${dirname(import.meta.url)}/{events,interactions}/**/*.{ts,js}`);
 
     const database = container.resolve(CustomDatabase);
-
     try {
         await bot.login(process.env.BOT_TOKEN);
         await Promise.all([database.init(), bot.initApplicationCommands()]);

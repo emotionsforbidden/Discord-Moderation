@@ -1,5 +1,5 @@
 import { inject, singleton } from 'tsyringe';
-import { Repository } from 'typeorm';
+import { FindOptionsSelect, Repository } from 'typeorm';
 import { UserModel } from '@src/libs/common/database/users/User.model';
 import { CustomDatabase } from '@src/libs/common/database/CustomDatabase';
 import { DateService } from '@src/libs/common/date/Date.service';
@@ -16,10 +16,17 @@ export class UsersManager {
         this.repository = this.database.getRepository(UserModel);
     }
 
-    public async get(userId: string, guildId: string) {
-        const doc = await this.repository.findOneBy({
-            userId,
-            guildId
+    public async get(
+        userId: string,
+        guildId: string,
+        select?: FindOptionsSelect<UserModel> | undefined
+    ) {
+        const doc = await this.repository.findOne({
+            where: {
+                userId,
+                guildId
+            },
+            select
         });
 
         if (doc) {
@@ -73,6 +80,7 @@ export class UsersManager {
                 `CAST("activePunishments"::jsonb -> 'ban' ->> 'expiresAt' AS BIGINT) < :now`,
                 { now: this.date.nowTimestamp() }
             )
+            .select(['userId', 'guildId', 'activePunishments'])
             .getMany();
     }
 }

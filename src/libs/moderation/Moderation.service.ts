@@ -3,12 +3,7 @@ import { ExecutePunishmentDto } from '@src/libs/moderation/dto/ExecutePunishment
 import { PunishmentType } from '@src/libs/moderation/enums/PunishmentType';
 import { ConfigsStorage as configs, ConfigsStorage } from '@config';
 import { DateService } from '@src/libs/common/date/Date.service';
-import {
-    ClientUser,
-    Guild,
-    GuildMember,
-    PermissionFlagsBits
-} from 'discord.js';
+import { ClientUser, Guild, GuildMember } from 'discord.js';
 import { UsersService } from '@src/libs/users/Users.service';
 import CronTime from 'cron-time-generator';
 import { CronJob } from 'cron';
@@ -129,9 +124,10 @@ export class ModerationService {
     }
 
     public canInteract(member: GuildMember) {
-        return (
-            member.roles.cache.hasAny(...configs.discord.roles.canInteract) ||
-            member.permissions.has(PermissionFlagsBits.Administrator)
+        return this.users.hasRoles(
+            member,
+            configs.discord.roles.canInteract,
+            true
         );
     }
 
@@ -139,6 +135,7 @@ export class ModerationService {
         CronJob.from({
             cronTime: CronTime.every(2).minutes(),
             start: true,
+            waitForCompletion: true,
             onTick: async () => {
                 const [
                     expiredTextMutesDocs,

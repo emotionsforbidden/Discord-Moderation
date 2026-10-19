@@ -46,10 +46,14 @@ export class ModerationPunishmentExecuteBanModal {
             return await this.responses.replyWithMessage(ctx, {
                 components: [
                     this.responses
-                        .modifyContainer(builder, ctx.user.displayAvatarURL(), [
-                            `## Ban execute`,
-                            `${ctx.user}, Selected member ${bold(`not found`)}`
-                        ])
+                        .modifyContainer(
+                            builder,
+                            ctx.user.displayAvatarURL({ forceStatic: true }),
+                            [
+                                `## Ban execute`,
+                                `${ctx.user}, Selected member ${bold(`not found`)}`
+                            ]
+                        )
                         .addActionRowComponents((actionRow) =>
                             actionRow.setComponents(
                                 this.responses.generateBackButton(
@@ -67,10 +71,14 @@ export class ModerationPunishmentExecuteBanModal {
             return await this.responses.replyWithMessage(ctx, {
                 components: [
                     this.responses
-                        .modifyContainer(builder, ctx.user.displayAvatarURL(), [
-                            `## Ban execute`,
-                            `${ctx.user}, Choose duration ${bold(`between 1 and 30 days`)}`
-                        ])
+                        .modifyContainer(
+                            builder,
+                            ctx.user.displayAvatarURL({ forceStatic: true }),
+                            [
+                                `## Ban execute`,
+                                `${ctx.user}, Choose duration ${bold(`between 1 and 30 days`)}`
+                            ]
+                        )
                         .addActionRowComponents((actionRow) =>
                             actionRow.setComponents(
                                 this.responses.generateBackButton(
@@ -88,10 +96,14 @@ export class ModerationPunishmentExecuteBanModal {
             return await this.responses.replyWithMessage(ctx, {
                 components: [
                     this.responses
-                        .modifyContainer(builder, ctx.user.displayAvatarURL(), [
-                            `## Ban execute`,
-                            `${ctx.user}, Choose duration ${bold(`between 1 and 30 days`)}`
-                        ])
+                        .modifyContainer(
+                            builder,
+                            ctx.user.displayAvatarURL({ forceStatic: true }),
+                            [
+                                `## Ban execute`,
+                                `${ctx.user}, Choose duration ${bold(`between 1 and 30 days`)}`
+                            ]
+                        )
                         .addActionRowComponents((actionRow) =>
                             actionRow.setComponents(
                                 this.responses.generateBackButton(
@@ -105,16 +117,26 @@ export class ModerationPunishmentExecuteBanModal {
             });
         }
 
-        const doc = await this.usersDatabase.get(targetId, ctx.guildId);
+        const doc = await this.usersDatabase.get(targetId, ctx.guildId, {
+            snowflake: {
+                id: true
+            },
+            activePunishments: true,
+            punishments: true
+        });
 
         if (doc.activePunishments.ban.status) {
             return await this.responses.replyWithMessage(ctx, {
                 components: [
                     this.responses
-                        .modifyContainer(builder, ctx.user.displayAvatarURL(), [
-                            `## Ban execute`,
-                            `${ctx.user}, ${target} already ${bold(`has ban`)}`
-                        ])
+                        .modifyContainer(
+                            builder,
+                            ctx.user.displayAvatarURL({ forceStatic: true }),
+                            [
+                                `## Ban execute`,
+                                `${ctx.user}, ${target} is ${bold(`already banned`)}`
+                            ]
+                        )
                         .addActionRowComponents((actionRow) =>
                             actionRow.setComponents(
                                 this.responses.generateBackButton(
@@ -134,14 +156,18 @@ export class ModerationPunishmentExecuteBanModal {
             this.responses.replyWithMessage(ctx, {
                 components: [
                     this.responses
-                        .modifyContainer(builder, target.displayAvatarURL(), [
-                            `## Ban execute`,
-                            `${ctx.user}, You have ${bold(`successfully banned`)} ${target}`,
+                        .modifyContainer(
+                            builder,
+                            target.displayAvatarURL({ forceStatic: true }),
                             [
-                                `-# - ${bold(`Reason:`)}: ${reason}`,
-                                `-# - ${bold(`Expires:`)}: <t:${this.transformers.toSeconds(endsAt)}:f>`
-                            ].join(`\n`)
-                        ])
+                                `## Ban execute`,
+                                `${ctx.user}, You have ${bold(`successfully banned`)} ${target}`,
+                                [
+                                    `-# - ${bold(`Reason:`)} ${reason}`,
+                                    `-# - ${bold(`Expires:`)} <t:${this.transformers.toSeconds(endsAt)}:f>`
+                                ].join(`\n`)
+                            ]
+                        )
                         .addActionRowComponents((actionRow) =>
                             actionRow.setComponents(
                                 this.responses.generateBackButton(

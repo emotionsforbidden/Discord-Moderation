@@ -46,10 +46,14 @@ export class ModerationPunishmentExecuteTextMuteModal {
             return await this.responses.replyWithMessage(ctx, {
                 components: [
                     this.responses
-                        .modifyContainer(builder, ctx.user.displayAvatarURL(), [
-                            `## Text mute execute`,
-                            `${ctx.user}, Selected member ${bold(`not found`)}`
-                        ])
+                        .modifyContainer(
+                            builder,
+                            ctx.user.displayAvatarURL({ forceStatic: true }),
+                            [
+                                `## Text mute execute`,
+                                `${ctx.user}, Selected member ${bold(`not found`)}`
+                            ]
+                        )
                         .addActionRowComponents((actionRow) =>
                             actionRow.setComponents(
                                 this.responses.generateBackButton(
@@ -67,10 +71,14 @@ export class ModerationPunishmentExecuteTextMuteModal {
             return await this.responses.replyWithMessage(ctx, {
                 components: [
                     this.responses
-                        .modifyContainer(builder, ctx.user.displayAvatarURL(), [
-                            `## Text mute execute`,
-                            `${ctx.user}, Choose duration ${bold(`from 10 minutes to 10 hours`)}`
-                        ])
+                        .modifyContainer(
+                            builder,
+                            ctx.user.displayAvatarURL({ forceStatic: true }),
+                            [
+                                `## Text mute execute`,
+                                `${ctx.user}, Choose duration ${bold(`from 10 minutes to 10 hours`)}`
+                            ]
+                        )
                         .addActionRowComponents((actionRow) =>
                             actionRow.setComponents(
                                 this.responses.generateBackButton(
@@ -88,10 +96,14 @@ export class ModerationPunishmentExecuteTextMuteModal {
             return await this.responses.replyWithMessage(ctx, {
                 components: [
                     this.responses
-                        .modifyContainer(builder, ctx.user.displayAvatarURL(), [
-                            `## Text mute execute`,
-                            `${ctx.user}, Choose duration ${bold(`from 10 minutes to 10 hours`)}`
-                        ])
+                        .modifyContainer(
+                            builder,
+                            ctx.user.displayAvatarURL({ forceStatic: true }),
+                            [
+                                `## Text mute execute`,
+                                `${ctx.user}, Choose duration ${bold(`from 10 minutes to 10 hours`)}`
+                            ]
+                        )
                         .addActionRowComponents((actionRow) =>
                             actionRow.setComponents(
                                 this.responses.generateBackButton(
@@ -105,16 +117,26 @@ export class ModerationPunishmentExecuteTextMuteModal {
             });
         }
 
-        const doc = await this.usersDatabase.get(targetId, ctx.guildId);
+        const doc = await this.usersDatabase.get(targetId, ctx.guildId, {
+            snowflake: {
+                id: true
+            },
+            activePunishments: true,
+            punishments: true
+        });
 
         if (doc.activePunishments.textMute.status) {
             return await this.responses.replyWithMessage(ctx, {
                 components: [
                     this.responses
-                        .modifyContainer(builder, target.displayAvatarURL(), [
-                            `## Text mute execute`,
-                            `${ctx.user}, ${target} already ${bold(`has text mute`)}`
-                        ])
+                        .modifyContainer(
+                            builder,
+                            target.displayAvatarURL({ forceStatic: true }),
+                            [
+                                `## Text mute execute`,
+                                `${ctx.user}, ${target} already ${bold(`has text mute`)}`
+                            ]
+                        )
                         .addActionRowComponents((actionRow) =>
                             actionRow.setComponents(
                                 this.responses.generateBackButton(
@@ -134,14 +156,18 @@ export class ModerationPunishmentExecuteTextMuteModal {
             this.responses.replyWithMessage(ctx, {
                 components: [
                     this.responses
-                        .modifyContainer(builder, ctx.user.displayAvatarURL(), [
-                            `## Text mute execute`,
-                            `${ctx.user}, You have ${bold(`successfully muted`)} ${target}`,
+                        .modifyContainer(
+                            builder,
+                            ctx.user.displayAvatarURL({ forceStatic: true }),
                             [
-                                `-# - ${bold(`Reason:`)}: ${reason}`,
-                                `-# - ${bold(`Expires:`)}: <t:${this.transformers.toSeconds(endsAt)}:f>`
-                            ].join(`\n`)
-                        ])
+                                `## Text mute execute`,
+                                `${ctx.user}, You have ${bold(`successfully muted`)} ${target}`,
+                                [
+                                    `-# - ${bold(`Reason:`)} ${reason}`,
+                                    `-# - ${bold(`Expires:`)} <t:${this.transformers.toSeconds(endsAt)}:f>`
+                                ].join(`\n`)
+                            ]
+                        )
                         .addActionRowComponents((actionRow) =>
                             actionRow.setComponents(
                                 this.responses.generateBackButton(

@@ -39,10 +39,14 @@ export class ModerationPunishmentRemoveVoiceMuteModal {
             return await this.responses.replyWithMessage(ctx, {
                 components: [
                     this.responses
-                        .modifyContainer(builder, ctx.user.displayAvatarURL(), [
-                            `## Voice mute removal`,
-                            `${ctx.user}, Selected member ${bold(`not found`)}`
-                        ])
+                        .modifyContainer(
+                            builder,
+                            ctx.user.displayAvatarURL({ forceStatic: true }),
+                            [
+                                `## Voice mute removal`,
+                                `${ctx.user}, Selected member ${bold(`not found`)}`
+                            ]
+                        )
                         .addActionRowComponents((actionRow) =>
                             actionRow.setComponents(
                                 this.responses.generateBackButton(
@@ -56,16 +60,25 @@ export class ModerationPunishmentRemoveVoiceMuteModal {
             });
         }
 
-        const doc = await this.usersDatabase.get(targetId, ctx.guildId);
+        const doc = await this.usersDatabase.get(targetId, ctx.guildId, {
+            snowflake: {
+                id: true
+            },
+            activePunishments: true
+        });
 
         if (!doc.activePunishments.voiceMute.status) {
             return await this.responses.replyWithMessage(ctx, {
                 components: [
                     this.responses
-                        .modifyContainer(builder, ctx.user.displayAvatarURL(), [
-                            `## Voice mute removal`,
-                            `${ctx.user}, ${target} ${bold(`doesn't have`)} voice mute`
-                        ])
+                        .modifyContainer(
+                            builder,
+                            ctx.user.displayAvatarURL({ forceStatic: true }),
+                            [
+                                `## Voice mute removal`,
+                                `${ctx.user}, ${target} ${bold(`doesn't have`)} voice mute`
+                            ]
+                        )
                         .addActionRowComponents((actionRow) =>
                             actionRow.setComponents(
                                 this.responses.generateBackButton(
@@ -83,11 +96,15 @@ export class ModerationPunishmentRemoveVoiceMuteModal {
             this.responses.replyWithMessage(ctx, {
                 components: [
                     this.responses
-                        .modifyContainer(builder, target.displayAvatarURL(), [
-                            `## Voice mute removal`,
-                            `${ctx.user}, You ${bold(`removed voice mute`)} from ${target}`,
-                            `-# - ${bold(`Reason:`)} ${reason}`
-                        ])
+                        .modifyContainer(
+                            builder,
+                            target.displayAvatarURL({ forceStatic: true }),
+                            [
+                                `## Voice mute removal`,
+                                `${ctx.user}, You ${bold(`removed voice mute`)} from ${target}`,
+                                `-# - ${bold(`Reason:`)} ${reason}`
+                            ]
+                        )
                         .addActionRowComponents((actionRow) =>
                             actionRow.setComponents(
                                 this.responses.generateBackButton(

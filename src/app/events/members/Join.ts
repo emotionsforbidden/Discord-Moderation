@@ -23,7 +23,9 @@ export class GuildMemberJoinEvent {
             return;
         }
 
-        const doc = await this.usersDatabase.get(member.id, member.guild.id);
+        const doc = await this.usersDatabase.get(member.id, member.guild.id, {
+            activePunishments: true
+        });
 
         if (doc.activePunishments.textMute.status) {
             await this.users.addRoles(member, [

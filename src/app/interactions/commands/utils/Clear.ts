@@ -56,7 +56,7 @@ export class ClearCommand {
                 components: [
                     this.responses.modifyContainer(
                         builder,
-                        ctx.user.displayAvatarURL(),
+                        ctx.user.displayAvatarURL({ forceStatic: true }),
                         [
                             `## Messages delete`,
                             `${ctx.user}, Channel ${bold(`not found`)}`
@@ -74,7 +74,7 @@ export class ClearCommand {
                 components: [
                     this.responses.modifyContainer(
                         builder,
-                        ctx.user.displayAvatarURL(),
+                        ctx.user.displayAvatarURL({ forceStatic: true }),
                         [
                             `## Messages delete`,
                             `${ctx.user}, Messages ${bold(`not found`)}`
@@ -99,7 +99,7 @@ export class ClearCommand {
                 components: [
                     this.responses.modifyContainer(
                         builder,
-                        ctx.user.displayAvatarURL(),
+                        ctx.user.displayAvatarURL({ forceStatic: true }),
                         [
                             `## Messages delete`,
                             `${ctx.user}, Messages ${bold(`not found`)}`
@@ -116,7 +116,7 @@ export class ClearCommand {
                 components: [
                     this.responses.modifyContainer(
                         builder,
-                        ctx.user.displayAvatarURL(),
+                        ctx.user.displayAvatarURL({ forceStatic: true }),
                         [
                             `## Messages delete`,
                             `${ctx.user}, ${bold(`Successfully deleted`)} messages from ${channel}`

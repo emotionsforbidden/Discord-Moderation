@@ -39,10 +39,14 @@ export class ModerationPunishmentRemoveBanModal {
             return await this.responses.replyWithMessage(ctx, {
                 components: [
                     this.responses
-                        .modifyContainer(builder, ctx.user.displayAvatarURL(), [
-                            `## Ban removal`,
-                            `${ctx.user}, Selected member ${bold(`not found`)}`
-                        ])
+                        .modifyContainer(
+                            builder,
+                            ctx.user.displayAvatarURL({ forceStatic: true }),
+                            [
+                                `## Ban removal`,
+                                `${ctx.user}, Selected member ${bold(`not found`)}`
+                            ]
+                        )
                         .addActionRowComponents((actionRow) =>
                             actionRow.setComponents(
                                 this.responses.generateBackButton(
@@ -56,16 +60,25 @@ export class ModerationPunishmentRemoveBanModal {
             });
         }
 
-        const doc = await this.usersDatabase.get(targetId, ctx.guildId);
+        const doc = await this.usersDatabase.get(targetId, ctx.guildId, {
+            snowflake: {
+                id: true
+            },
+            activePunishments: true
+        });
 
         if (!doc.activePunishments.ban.status) {
             return await this.responses.replyWithMessage(ctx, {
                 components: [
                     this.responses
-                        .modifyContainer(builder, ctx.user.displayAvatarURL(), [
-                            `## Ban removal`,
-                            `${ctx.user}, ${target} ${bold(`doesn't have`)} ban`
-                        ])
+                        .modifyContainer(
+                            builder,
+                            ctx.user.displayAvatarURL({ forceStatic: true }),
+                            [
+                                `## Ban removal`,
+                                `${ctx.user}, ${target} ${bold(`isn't banned`)}`
+                            ]
+                        )
                         .addActionRowComponents((actionRow) =>
                             actionRow.setComponents(
                                 this.responses.generateBackButton(
@@ -83,11 +96,15 @@ export class ModerationPunishmentRemoveBanModal {
             this.responses.replyWithMessage(ctx, {
                 components: [
                     this.responses
-                        .modifyContainer(builder, target.displayAvatarURL(), [
-                            `## Ban removal`,
-                            `${ctx.user}, You ${bold(`removed ban`)} from ${target}`,
-                            `-# - ${bold(`Reason:`)} ${reason}`
-                        ])
+                        .modifyContainer(
+                            builder,
+                            target.displayAvatarURL({ forceStatic: true }),
+                            [
+                                `## Ban removal`,
+                                `${ctx.user}, You ${bold(`removed ban`)} from ${target}`,
+                                `-# - ${bold(`Reason:`)} ${reason}`
+                            ]
+                        )
                         .addActionRowComponents((actionRow) =>
                             actionRow.setComponents(
                                 this.responses.generateBackButton(

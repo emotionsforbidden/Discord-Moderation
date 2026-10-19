@@ -1,7 +1,5 @@
 import { inject, singleton } from 'tsyringe';
 import {
-    ActionRowBuilder,
-    AnyComponentBuilder,
     bold,
     ButtonBuilder,
     ButtonStyle,
@@ -23,6 +21,7 @@ import { PaginatorPageAction } from '@src/libs/responses/enums/PaginatorPageActi
 import { PunishmentType } from '@src/libs/moderation/enums/PunishmentType';
 import { UsersService } from '@src/libs/users/Users.service';
 import { TransformersService } from '@src/libs/transformers/Transformers.service';
+import { CustomLogger } from '@src/libs/common/logger/CustomLogger';
 
 @singleton()
 export class ResponsesService {
@@ -30,32 +29,64 @@ export class ResponsesService {
         @inject(DateService) private readonly date: DateService,
         @inject(UsersService) private readonly users: UsersService,
         @inject(TransformersService)
-        private readonly transformers: TransformersService
+        private readonly transformers: TransformersService,
+        @inject(CustomLogger) private readonly logger: CustomLogger
     ) {}
 
     public async replyWithMessage(
         ctx: AnyInteraction,
         props: InteractionReplyOptions | InteractionEditReplyOptions,
-        isFollowUp: boolean = false
+        isFollowUp: boolean = false,
+        withMention: boolean = false
     ) {
         if (isFollowUp) {
-            await ctx.followUp(props as InteractionReplyOptions);
+            try {
+                return await ctx.followUp({
+                    ...(props as InteractionReplyOptions),
+                    allowedMentions: withMention
+                        ? undefined
+                        : {
+                            parse: [],
+                            repliedUser: false
+                        }
+                });
+            } catch (error) {
+                this.logger.handleError(error, `Error with response`);
+            }
             return;
         }
 
         if (ctx.deferred) {
-            await ctx.editReply(props as InteractionEditReplyOptions);
+            try {
+                await ctx.editReply({
+                    ...(props as InteractionEditReplyOptions),
+                    allowedMentions: withMention
+                        ? undefined
+                        : {
+                            parse: [],
+                            repliedUser: false
+                        }
+                });
+            } catch (error) {
+                this.logger.handleError(error, `Error with response`);
+            }
             return;
         }
 
-        await ctx.reply(props as InteractionReplyOptions);
+        try {
+            await ctx.reply({
+                ...(props as InteractionReplyOptions),
+                allowedMentions: withMention
+                    ? undefined
+                    : {
+                        parse: [],
+                        repliedUser: false
+                    }
+            });
+        } catch (error) {
+            this.logger.handleError(error, `Error with response`);
+        }
         return;
-    }
-
-    public getMessageRowTemplate(components: AnyComponentBuilder[]) {
-        return new ActionRowBuilder<AnyComponentBuilder>()
-            .setComponents(components)
-            .toJSON();
     }
 
     public modifyContainer(
@@ -124,7 +155,7 @@ export class ResponsesService {
                 new SectionBuilder()
                     .setThumbnailAccessory(
                         new ThumbnailBuilder().setURL(
-                            dto.target.displayAvatarURL()
+                            dto.target.displayAvatarURL({ forceStatic: true })
                         )
                     )
                     .addTextDisplayComponents(

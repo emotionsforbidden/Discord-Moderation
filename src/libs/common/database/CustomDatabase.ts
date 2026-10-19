@@ -3,6 +3,7 @@ import { inject, singleton } from 'tsyringe';
 import { CustomLogger } from '@src/libs/common/logger/CustomLogger';
 import { LogLevel } from '@src/libs/common/logger/enums/LogLevel';
 import { UserModel } from '@src/libs/common/database/users/User.model';
+import { ReportModel } from '@src/libs/common/database/reports/Report.model';
 
 @singleton()
 export class CustomDatabase extends DataSource {
@@ -18,7 +19,7 @@ export class CustomDatabase extends DataSource {
             database: process.env.POSTGRES_DB,
             synchronize: process.env.DATABASE_SYNCHRONIZE === 'true',
             logging: process.env.DATABASE_LOGGING === 'true',
-            entities: [UserModel]
+            entities: [UserModel, ReportModel]
         });
     }
 

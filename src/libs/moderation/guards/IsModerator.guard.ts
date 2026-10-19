@@ -23,10 +23,14 @@ export const IsModeratorGuard: GuardFunction<AnyInteraction> = async (
 
     return await responses.replyWithMessage(ctx, {
         components: [
-            responses.modifyContainer(builder, ctx.user.displayAvatarURL(), [
-                `## Access denied`,
-                `${ctx.user}, You ${bold(`cannot interact`)} with this module`
-            ])
+            responses.modifyContainer(
+                builder,
+                ctx.user.displayAvatarURL({ forceStatic: true }),
+                [
+                    `## Access denied`,
+                    `${ctx.user}, You ${bold(`cannot interact`)} with this module`
+                ]
+            )
         ],
         flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2]
     });

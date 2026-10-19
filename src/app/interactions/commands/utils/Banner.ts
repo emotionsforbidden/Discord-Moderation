@@ -68,7 +68,7 @@ export class BannerCommand {
                 components: [
                     this.responses.modifyContainer(
                         builder,
-                        member.displayAvatarURL(),
+                        member.displayAvatarURL({ forceStatic: true }),
                         [
                             `## Member banner — ${member.user.username}`,
                             `${ctx.user}, ${member} ${bold(`doesn't have`)} a banner`

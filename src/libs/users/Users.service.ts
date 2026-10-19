@@ -1,8 +1,8 @@
 import { inject, singleton } from 'tsyringe';
 import { GuildMember, PermissionFlagsBits } from 'discord.js';
 import { AvatarOrBannerType } from '@src/libs/users/enums/AvatarOrBannerType';
-import { ConfigsStorage } from '@config';
 import { CustomLogger } from '@src/libs/common/logger/CustomLogger';
+import { ConfigsStorage } from '@config';
 
 @singleton()
 export class UsersService {
@@ -14,9 +14,10 @@ export class UsersService {
 
     public async getUserBanner(member: GuildMember, type: AvatarOrBannerType) {
         const response = await fetch(
-            type === AvatarOrBannerType.SERVER
-                ? `https://discord.com/api/guilds/${member.guild.id}/members/${member.id}`
-                : `https://discord.com/api/users/${member.id}`,
+            this.configs.discord.apiUrl +
+                (type === AvatarOrBannerType.SERVER
+                    ? `guilds/${member.guild.id}/members/${member.id}`
+                    : `users/${member.id}`),
             {
                 method: 'GET',
                 headers: {
@@ -30,20 +31,38 @@ export class UsersService {
 
         return banner
             ? type === AvatarOrBannerType.SERVER
-                ? banner.startsWith('a_')
-                    ? `https://cdn.discordapp.com/guilds/${member.guild.id}/users/${member.id}/banners/${banner}.gif?size=4096`
-                    : `https://cdn.discordapp.com/guilds/${member.guild.id}/users/${member.id}/banners/${banner}.png?size=4096`
-                : banner.startsWith('a_')
-                  ? `https://cdn.discordapp.com/banners/${member.id}/${banner}.gif?size=4096`
-                  : `https://cdn.discordapp.com/banners/${member.id}/${banner}.png?size=4096`
+                ? this.configs.discord.cdnUrl +
+                  `guilds/${member.guild.id}/users/${member.id}/banners/${banner}.${banner.startsWith('a_') ? `gif` : `png`}?size=4096`
+                : this.configs.discord.cdnUrl +
+                  `banners/${member.id}/${banner}.${banner.startsWith('a_') ? `gif` : `png`}?size=4096`
             : null;
     }
 
-    public isStaff(member: GuildMember) {
-        return (
-            member.roles.cache.hasAny(...this.configs.discord.roles.staff) ||
-            member.permissions.has(PermissionFlagsBits.Administrator)
-        );
+    public hasRoles(
+        member: GuildMember,
+        roles: (string | null)[],
+        checkForAdmin: boolean = false
+    ) {
+        const legitRoles = roles.filter((id): id is string => !!id);
+        const uniqueRoles = [...new Set(legitRoles)];
+
+        if (checkForAdmin) {
+            const isAdmin = member.permissions.has(
+                PermissionFlagsBits.Administrator
+            );
+
+            if (uniqueRoles) {
+                return member.roles.cache.hasAny(...uniqueRoles) || isAdmin;
+            } else {
+                return isAdmin;
+            }
+        } else {
+            if (uniqueRoles.length) {
+                return member.roles.cache.hasAny(...uniqueRoles);
+            } else {
+                return false;
+            }
+        }
     }
 
     public checkForDevice(member: GuildMember) {

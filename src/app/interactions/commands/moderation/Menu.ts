@@ -9,16 +9,20 @@ import {
     ContainerBuilder,
     GuildMember,
     MessageFlags,
+    PermissionFlagsBits,
     User
 } from 'discord.js';
 import { UsersService } from '@src/libs/users/Users.service';
 import { IsModeratorGuard } from '@src/libs/moderation/guards/IsModerator.guard';
 import { UtilsService } from '@src/libs/utils/Utils.service';
+import { ConfigsStorage } from '@config';
 
 @Discord()
 @singleton()
 @Guard(IsModeratorGuard)
 export class ModerationMenuCommand {
+    private readonly configs = ConfigsStorage;
+
     public constructor(
         @inject(ResponsesService) private readonly responses: ResponsesService,
         @inject(UsersManager) private readonly usersDatabase: UsersManager,
@@ -28,7 +32,8 @@ export class ModerationMenuCommand {
 
     @Slash({
         name: 'mod-menu',
-        description: 'Use moderation menu'
+        description: 'Use moderation menu',
+        defaultMemberPermissions: PermissionFlagsBits.Administrator
     })
     public async execute(
         @SlashOption({
@@ -53,7 +58,7 @@ export class ModerationMenuCommand {
                 components: [
                     this.responses.modifyContainer(
                         guardData.builder,
-                        ctx.user.displayAvatarURL(),
+                        ctx.user.displayAvatarURL({ forceStatic: true }),
                         [
                             `## Moderation menu`,
                             `${ctx.user}, Selected member ${bold(`not found`)}`
@@ -69,7 +74,7 @@ export class ModerationMenuCommand {
                 components: [
                     this.responses.modifyContainer(
                         guardData.builder,
-                        ctx.user.displayAvatarURL(),
+                        ctx.user.displayAvatarURL({ forceStatic: true }),
                         [
                             `## Moderation menu`,
                             `${ctx.user}, You cannot interact ${bold(`with yourself`)}`
@@ -85,7 +90,7 @@ export class ModerationMenuCommand {
                 components: [
                     this.responses.modifyContainer(
                         guardData.builder,
-                        ctx.user.displayAvatarURL(),
+                        ctx.user.displayAvatarURL({ forceStatic: true }),
                         [
                             `## Moderation menu`,
                             `${ctx.user}, You cannot interact ${bold(`with bot`)}`
@@ -96,8 +101,14 @@ export class ModerationMenuCommand {
             });
         }
 
-        const doc = await this.usersDatabase.get(target.id, ctx.guildId);
-        const targetIsStaff = this.users.isStaff(target);
+        const doc = await this.usersDatabase.get(target.id, ctx.guildId, {
+            activePunishments: true
+        });
+        const targetIsStaff = this.users.hasRoles(
+            target,
+            this.configs.discord.roles.staff,
+            true
+        );
 
         await this.responses.replyWithMessage(ctx, {
             components: [
