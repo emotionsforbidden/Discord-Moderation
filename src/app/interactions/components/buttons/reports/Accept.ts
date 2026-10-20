@@ -60,7 +60,16 @@ export class ReportAcceptButton {
             );
         }
 
-        const doc = await this.reportsDatabase.get(docId);
+        const doc = await this.reportsDatabase.get(docId, {
+            snowflake: {
+                id: true
+            },
+            status: true,
+            targetId: true,
+            senderId: true,
+            moderatorId: true,
+            moderatorsHistory: true
+        });
 
         if (!doc) {
             return await this.responses.replyWithMessage(

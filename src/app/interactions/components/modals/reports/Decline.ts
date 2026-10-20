@@ -64,7 +64,13 @@ export class ReportDeclineModal {
             );
         }
 
-        const doc = await this.reportsDatabase.get(docId);
+        const doc = await this.reportsDatabase.get(docId, {
+            snowflake: {
+                id: true
+            },
+            status: true,
+            targetId: true
+        });
 
         if (!doc) {
             return await this.responses.replyWithMessage(

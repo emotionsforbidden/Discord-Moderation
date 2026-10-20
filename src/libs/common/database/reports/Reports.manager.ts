@@ -1,5 +1,5 @@
 import { inject, singleton } from 'tsyringe';
-import { Repository } from 'typeorm';
+import { FindOptionsSelect, Repository } from 'typeorm';
 import { ReportModel } from '@src/libs/common/database/reports/Report.model';
 import { CustomDatabase } from '@src/libs/common/database/CustomDatabase';
 import { SendReportDto } from '@src/libs/reports/dto/SendReportDto';
@@ -32,13 +32,14 @@ export class ReportsManager {
         );
     }
 
-    public async get(id: number) {
+    public async get(id: number, select?: FindOptionsSelect<ReportModel>) {
         return await this.repository.findOne({
             where: {
                 snowflake: {
                     id
                 }
-            }
+            },
+            select
         });
     }
 
